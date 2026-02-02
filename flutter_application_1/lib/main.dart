@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'pages/login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,8 +34,47 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: const MyHomePage(),
+      home: const AuthChecker(),
+      routes: {
+        '/login': (context) => const LoginPage(),
+        '/home': (context) => const MyHomePage(),
+      },
     );
+  }
+}
+
+class AuthChecker extends StatefulWidget {
+  const AuthChecker({super.key});
+
+  @override
+  State<AuthChecker> createState() => _AuthCheckerState();
+}
+
+class _AuthCheckerState extends State<AuthChecker> {
+  late final StreamSubscription<AuthState> _authStateSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _authStateSubscription =
+        Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authStateSubscription.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Supabase.instance.client.auth.currentSession == null
+        ? const LoginPage()
+        : const MyHomePage();
   }
 }
 
@@ -140,6 +181,21 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Future<void> _logout() async {
+    try {
+      await Supabase.instance.client.auth.signOut();
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur déconnexion: $e')),
+        );
+      }
+    }
+  }
+
   void _editNote(int index) {
     final noteToEdit = notes[index];
     
@@ -199,6 +255,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 _addNote();
               },
               icon: const Icon(Icons.add, color: Color.fromARGB(255, 7, 226, 255)),
+            ),
+            IconButton(
+              onPressed: _logout,
+              icon: const Icon(Icons.logout, color: Color.fromARGB(255, 7, 226, 255)),
+              tooltip: 'Se déconnecter',
             ),
           ],
         ),
