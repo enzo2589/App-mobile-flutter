@@ -100,7 +100,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> fetchNotes() async {
     try {
-      final data = await client.from('note').select().order('id', ascending: true);
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) {
+        setState(() => errorMsg = 'Utilisateur non connecté');
+        return;
+      }
+      
+      final data = await client
+          .from('note')
+          .select()
+          .eq('user_id', userId)
+          .order('id', ascending: true);
       
       setState(() {
         notes = [
@@ -119,7 +129,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> addNote(String text) async {
     try {
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) {
+        setState(() => errorMsg = 'Utilisateur non connecté');
+        return;
+      }
+      
       await client.from('note').insert({
+        'user_id': userId,
         'text': text, 
         'date': DateTime.now().toString().split(' ')[0]
       });
