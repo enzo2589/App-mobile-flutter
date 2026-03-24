@@ -38,7 +38,6 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (_isLoginMode) {
-        // Connexion
         try {
           final response = await supabase.auth.signInWithPassword(
             email: email,
@@ -48,23 +47,19 @@ class _LoginPageState extends State<LoginPage> {
           if (mounted && response.user != null) {
             Navigator.of(context).pushReplacementNamed('/home');
           }
-        } on AuthException catch (e) {
+        } on AuthException {
           _setError('Email ou mot de passe incorrect');
         }
       } else {
-        // Inscription - Créer le compte directement
         try {
-          // Essayer de créer le compte
           final response = await supabase.auth.signUp(
             email: email,
             password: password,
           );
 
           if (response.user != null && mounted) {
-            // Le compte est créé, vérifier si une session est déjà active
             await Future.delayed(const Duration(milliseconds: 500));
 
-            // Récupérer la session actuelle
             final session = supabase.auth.currentSession;
             
             if (session != null && mounted) {

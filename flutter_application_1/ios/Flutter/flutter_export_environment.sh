@@ -1,9 +1,9 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
-export "FLUTTER_ROOT=/home/enzo/snap/flutter/common/flutter"
-export "FLUTTER_APPLICATION_PATH=/home/enzo/workflow/App-mobile/flutter_application_1"
+export "FLUTTER_ROOT=C:\Users\edeyr\flutter"
+export "FLUTTER_APPLICATION_PATH=C:\Users\edeyr\OneDrive\Documents\epsi\SN2\app mobile\App-mobile-flutter\flutter_application_1"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
-export "FLUTTER_TARGET=lib/main.dart"
+export "FLUTTER_TARGET=lib\main.dart"
 export "FLUTTER_BUILD_DIR=build"
 export "FLUTTER_BUILD_NAME=1.0.0"
 export "FLUTTER_BUILD_NUMBER=1"

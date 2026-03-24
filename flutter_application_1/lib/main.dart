@@ -18,8 +18,36 @@ class Note {
   final int id;
   final String text;
   final String date;
+  final int typeId;
+  final String typeName;
   
-  Note({required this.id, required this.text, required this.date});
+  Note({required this.id, required this.text, required this.date, this.typeId = 1, this.typeName = 'à faire'});
+}
+
+Color getTypeColor(int typeId) {
+  switch (typeId) {
+    case 1:
+      return Colors.blue; 
+    case 2:
+      return Colors.orange; 
+    case 3:
+      return Colors.red; 
+    default:
+      return Colors.blue;
+  }
+}
+
+String getTypeName(int typeId) {
+  switch (typeId) {
+    case 1:
+      return 'À faire';
+    case 2:
+      return 'Important';
+    case 3:
+      return 'Urgent';
+    default:
+      return 'À faire';
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -115,7 +143,13 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         notes = [
           for (final item in data)
-            Note(id: item['id'], text: item['text'], date: item['date'])
+            Note(
+              id: item['id'],
+              text: item['text'],
+              date: item['date'],
+              typeId: item['type_id'] ?? 1,
+              typeName: getTypeName(item['type_id'] ?? 1),
+            )
         ];
         errorMsg = null;
       });
@@ -127,7 +161,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<void> addNote(String text) async {
+  Future<void> addNote(String text, int typeId) async {
     try {
       final userId = client.auth.currentUser?.id;
       if (userId == null) {
@@ -137,7 +171,8 @@ class _MyHomePageState extends State<MyHomePage> {
       
       await client.from('note').insert({
         'user_id': userId,
-        'text': text, 
+        'text': text,
+        'type_id': typeId,
         'date': DateTime.now().toString().split(' ')[0]
       });
       await fetchNotes();
@@ -170,29 +205,54 @@ class _MyHomePageState extends State<MyHomePage> {
       context: context,
       builder: (BuildContext context) {
         TextEditingController textController = TextEditingController();
-        return AlertDialog(
-          title: const Text('Ajouter une tache'),
-          content: TextField(
-            controller: textController,
-            decoration: const InputDecoration(hintText: 'Entrez votre tache '),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Annuler'),
-            ),
-            TextButton(
-              onPressed: () async {
-                if (textController.text.isNotEmpty) {
-                  await addNote(textController.text);
-                  if (mounted) Navigator.of(context).pop();
-                }
-              },
-              child: const Text('Ajouter'),
-            ),
-          ],
+        int selectedTypeId = 1;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Ajouter une tache'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: textController,
+                    decoration: const InputDecoration(hintText: 'Entrez votre tache '),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Type:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  DropdownButton<int>(
+                    value: selectedTypeId,
+                    isExpanded: true,
+                    items: const [
+                      DropdownMenuItem(value: 1, child: Text('À faire')),
+                      DropdownMenuItem(value: 2, child: Text('Important')),
+                      DropdownMenuItem(value: 3, child: Text('Urgent')),
+                    ],
+                    onChanged: (value) {
+                      setState(() => selectedTypeId = value ?? 1);
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('Annuler'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    if (textController.text.isNotEmpty) {
+                      await addNote(textController.text, selectedTypeId);
+                      if (mounted) Navigator.of(context).pop();
+                    }
+                  },
+                  child: const Text('Ajouter'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -303,35 +363,60 @@ class _MyHomePageState extends State<MyHomePage> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 2,
                         margin: const EdgeInsets.symmetric(vertical: 8),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(task.text,
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(task.date,
-                                      style: const TextStyle(
-                                          color: Colors.blueAccent, fontWeight: FontWeight.w600)),
-                                  Row(
-                                    children: [
-                                      IconButton(
-                                        onPressed: () => _editNote(index),
-                                        icon: const Icon(Icons.edit, color: Colors.green),
+                        color: getTypeColor(task.typeId).withOpacity(0.1),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border(left: BorderSide(color: getTypeColor(task.typeId), width: 5)),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(task.text,
+                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: getTypeColor(task.typeId),
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
-                                      IconButton(
-                                        onPressed: () => _deleteNote(index),
-                                        icon: const Icon(Icons.delete, color: Colors.red),
+                                      child: Text(
+                                        task.typeName,
+                                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                                       ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(task.date,
+                                        style: TextStyle(
+                                            color: getTypeColor(task.typeId), fontWeight: FontWeight.w600)),
+                                    Row(
+                                      children: [
+                                        IconButton(
+                                          onPressed: () => _editNote(index),
+                                          icon: const Icon(Icons.edit, color: Colors.green),
+                                        ),
+                                        IconButton(
+                                          onPressed: () => _deleteNote(index),
+                                          icon: const Icon(Icons.delete, color: Colors.red),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       );

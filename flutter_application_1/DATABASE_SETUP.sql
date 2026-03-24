@@ -1,3 +1,15 @@
+-- Table types de notes
+CREATE TABLE types (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(50) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insérer les types de notes
+INSERT INTO types (name) VALUES ('à faire');
+INSERT INTO types (name) VALUES ('important');
+INSERT INTO types (name) VALUES ('urgent');
+
 -- Table utilisateurs
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT auth.uid(),
@@ -9,14 +21,32 @@ CREATE TABLE users (
 
 -- Modifier la table note existante pour ajouter les colonnes manquantes
 ALTER TABLE note ADD COLUMN user_id UUID REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE note ADD COLUMN type_id INTEGER REFERENCES types(id) DEFAULT 1;
 ALTER TABLE note ADD COLUMN completed BOOLEAN DEFAULT FALSE;
 ALTER TABLE note ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE note ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 -- Politiques Row Level Security (RLS)
 -- Activer RLS sur les tables
+ALTER TABLE types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE note ENABLE ROW LEVEL SECURITY;
+
+-- Les utilisateurs peuvent lire tous les types
+CREATE POLICY "Anyone can read types"
+ON types FOR SELECT USING (true);
+
+-- Seul un administrateur peut insérer des types (bloqué pour les autres)
+CREATE POLICY "No one can insert types"
+ON types FOR INSERT WITH CHECK (false);
+
+-- Seul un administrateur peut modifier des types (bloqué pour les autres)
+CREATE POLICY "No one can update types"
+ON types FOR UPDATE USING (false);
+
+-- Seul un administrateur peut supprimer des types (bloqué pour les autres)
+CREATE POLICY "No one can delete types"
+ON types FOR DELETE USING (false);
 
 -- Les utilisateurs peuvent voir leur propre profil
 CREATE POLICY "Users can view their own profile"
